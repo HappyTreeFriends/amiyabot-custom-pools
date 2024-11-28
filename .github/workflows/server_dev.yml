@@ -49,7 +49,8 @@ jobs:
     - name: Build and push Docker images
       uses: docker/build-push-action@v4.1.1
       with:
-        context: server
+        context: ./server
+        file: ./server/Dockerfile
         push: true
         tags: harbor.hsyhhssyy.net/home-esxi/amiyabot-custom-pools-server:latest, harbor.hsyhhssyy.net/home-esxi/amiyabot-custom-pools-server:${{ github.sha }}
 
