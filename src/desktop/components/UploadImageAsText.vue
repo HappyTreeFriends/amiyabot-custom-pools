@@ -22,24 +22,48 @@
             v-show="displayMask">
             <Close />
         </n-button>
+        <n-modal v-model:show="cropperOpen" :close-on-click-modal="false" :close-on-press-escape="false"
+            @after-enter="dialogOpen">
+            <n-card class="cropper-dialog" title="调整大小" :bordered="false" role="dialog" aria-modal="true">
+                <div class="cropper-dialog-card-content">
+                    <div class="cropper-div">
+                        <img ref="imageCropper" class="cropper-img" id="image" :src="'' + intermidiateImageBase64">
+                    </div>
+                    <div class="cropper-dialog-button-bar">
+                        <n-button type="error" @click="cropperOpen = false">取消</n-button>
+                        <n-button type="primary" @click="dialogClose">确定</n-button>
+                    </div>
+                </div>
+            </n-card>
+        </n-modal>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, useTemplateRef, onMounted } from 'vue';
 import { UploadPicture } from '@icon-park/vue-next'
-import { UploadFileInfo } from 'naive-ui';
+import { c, UploadFileInfo } from 'naive-ui';
 import { Close } from '@icon-park/vue-next';
+
+import Cropper from 'cropperjs';
+import 'cropperjs/dist/cropper.css';
 
 const model = defineModel<string | null>({ required: true })
 
-defineProps<{
+const prop = defineProps<{
     text: string;
+    aspectRatio: number;
 }>();
 
 const displayMask = ref(false);
+const cropperOpen = ref(false);
 
 const imageMask = useTemplateRef('imageMask')
+const imageCropper = useTemplateRef('imageCropper')
+
+const intermidiateImageBase64 = ref<string | null>(null);
+
+var cropper:any;
 
 onMounted(() => {
     // 从model中获取图片的base64编码，并将其填入
@@ -48,7 +72,16 @@ onMounted(() => {
         const img = imageMask.value as HTMLImageElement;
         img.src = model.value;
     }
+
 })
+
+const dialogOpen = () => {
+
+    const imgC = imageCropper.value as HTMLImageElement;
+    cropper = new Cropper(imgC, {
+        aspectRatio: prop.aspectRatio
+    });
+}
 
 const removeImage = () => {
     displayMask.value = false;
@@ -64,18 +97,30 @@ const beforeUpload = (data: {
     const reader = new FileReader();
     reader.onloadend = () => {
         const base64Str = reader.result as string;
-        displayMask.value = true;
-
-        const img = imageMask.value as HTMLImageElement;
-        img.src = base64Str;
-
-        model.value = base64Str;
-        console.log("Image Loaded.");
+        intermidiateImageBase64.value = base64Str;
+        cropperOpen.value = true;
     };
     reader.readAsDataURL(blob);
 
     return false;
 };
+
+const dialogClose = () => {
+    const croppedCanvas = cropper.getCroppedCanvas();
+
+    // 将裁剪的 Canvas 转换为 DataURL（Base64 图片）
+    const croppedImageURL = croppedCanvas.toDataURL('image/png');
+    console.log(croppedImageURL);  
+    model.value = croppedImageURL;
+    console.log("Image Loaded.");
+    cropperOpen.value = false;
+
+    
+    const img = imageMask.value as HTMLImageElement;
+    img.src = croppedImageURL;
+    displayMask.value = true;
+
+}
 
 </script>
 
@@ -83,53 +128,89 @@ const beforeUpload = (data: {
 .uploader-body {
     position: relative;
     display: block;
-}
 
-.n-uploader {
-    width: 100%;
-    height: 100%;
-}
-
-.upload-dragger {
-    display: flex;
-    flex-direction: column;
-}
-
-.icon-container {
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: center;
-}
-
-.main-text {
-    font-size: 20px;
-}
-
-.sub-text {
-    font-size: 16px;
-}
-
-.image-mask {
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    border: 2px dashed #000;
-    background: rgba(255, 255, 255, 255);
-    z-index: 10;
-
-    .image-mask-img {
+    .n-uploader {
         width: 100%;
         height: 100%;
-        object-fit: contain;
-    }
-}
 
-.image-mask-close-button {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 20;
+        .upload-dragger {
+            display: flex;
+            flex-direction: column;
+
+            .icon-container {
+                margin-bottom: 12px;
+                display: flex;
+                justify-content: center;
+            }
+
+            .main-text {
+                font-size: 20px;
+            }
+
+            .sub-text {
+                font-size: 16px;
+            }
+        }
+    }
+
+    .image-mask {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        border: 2px dashed #000;
+        background: rgba(255, 255, 255, 255);
+        z-index: 10;
+
+        .image-mask-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    }
+
+    .image-mask-close-button {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 20;
+    }
+
+    .cropper-dialog {
+        // width 和 height都设为 80vh 和 80vw 中小的那一个
+        width: min(80vh, 80vw);
+        height: min(80vh, 80vw);
+
+        .cropper-dialog-card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+
+            .cropper-div {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
+
+                .cropper-img {
+                    display: block;
+
+                    /* This rule is very important, please don't ignore this */
+                    max-width: 100%;
+                }
+            }
+
+            .cropper-dialog-button-bar {
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+                margin-top: 20px;
+                margin-bottom: 40px;
+            }
+        }
+    }
 }
 </style>

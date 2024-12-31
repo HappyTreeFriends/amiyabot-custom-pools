@@ -11,12 +11,35 @@ const desktopRoutes: RouteRecordRaw[] = [
     component: () => import('@/desktop/views/Home.vue')
   },
   {
-    path: '/edit-pool',
-    name: 'edit-pool',
+    path: '/editor-home',
+    name: 'editor-home',
     meta: {
-      pageName: '编辑卡池'
+      pageName: '卡池编辑'
     },
-    component: () => import('@/desktop/views/EditPool.vue')
+    component: () => import('@/desktop/views/EditorHome.vue'),
+    children: [
+      {
+        path: '/edit-pool',
+        name: 'edit-pool',
+        meta: {
+          pageName: '卡池编辑'
+        },
+        component: () => import('@/desktop/views/EditPool.vue'),
+        children: [
+        ]
+      },      
+      {
+        path: '/edit-pool/edit-operator',
+        name: 'edit-operator',
+        meta: {
+          pageName: '干员编辑'
+        },
+        component: () => import('@/desktop/views/EditOperator.vue'),
+        children: [
+        ]
+      }
+    ]
+    
   }
 ]
 

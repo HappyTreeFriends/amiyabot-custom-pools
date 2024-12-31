@@ -556,6 +556,11 @@ confbox@^0.1.8:
   resolved "https://registry.npmmirror.com/confbox/-/confbox-0.1.8.tgz#820d73d3b3c82d9bd910652c5d4d599ef8ff8b06"
   integrity sha512-RMtmw0iFkeR4YV+fUOSucriAQNb9g8zFR52MWCtl+cCZOFRNL6zeB395vPzFhEjjn4fMxXudmELnl/KF/WrK6w==
 
+cropperjs@^1.6.2:
+  version "1.6.2"
+  resolved "https://registry.npmmirror.com/cropperjs/-/cropperjs-1.6.2.tgz#d1a5d627d880581cca41b7901f06923500e4201b"
+  integrity sha512-nhymn9GdnV3CqiEHJVai54TULFAE3VshJTXSqSJKa8yXAKyBKDWdhHarnlIPrshJ0WMFTGuFvG02YjLXfPiuOA==
+
 css-render@^0.15.10, css-render@^0.15.14:
   version "0.15.14"
   resolved "https://registry.npmmirror.com/css-render/-/css-render-0.15.14.tgz#c23d8c8b9c0b44cd20b426f5e9de7ef7bade69b8"
