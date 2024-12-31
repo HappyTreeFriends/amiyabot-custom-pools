@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 
 const breadcrumbItems :any = ref([]);
@@ -53,7 +53,7 @@ const updateBreadcrumb = (route:any) => {
 updateBreadcrumb(route);
 
 // 监听路由变化
-onBeforeRouteUpdate((to, from, next) => {
+onBeforeRouteUpdate((to, _, next) => {
   updateBreadcrumb(to);
   next();
 });

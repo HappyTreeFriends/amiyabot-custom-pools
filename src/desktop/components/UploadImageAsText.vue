@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import { ref, useTemplateRef, onMounted } from 'vue';
 import { UploadPicture } from '@icon-park/vue-next'
-import { c, UploadFileInfo } from 'naive-ui';
+import { UploadFileInfo } from 'naive-ui';
 import { Close } from '@icon-park/vue-next';
 
 import Cropper from 'cropperjs';

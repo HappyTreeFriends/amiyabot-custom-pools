@@ -1,17 +1,24 @@
 {
-  "compilerOptions": {
-      "allowJs": true,
-      "types": [
-          "node"
-      ]
-  },
-  "files": [],
-  "references": [
-      {
-          "path": "./tsconfig.node.json"
-      },
-      {
-          "path": "./tsconfig.app.json"
-      }
-  ]
+    "compilerOptions": {
+        "allowJs": true,
+        "composite": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ]
+        },
+        "types": [
+            "node"
+        ]
+    },
+    "files": [],
+    "references": [
+        {
+            "path": "./tsconfig.node.json"
+        },
+        {
+            "path": "./tsconfig.app.json"
+        }
+    ]
 }
