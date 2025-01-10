@@ -1,12 +1,12 @@
 <template>
     <div class="login">
         <div class="main-body">
-            <n-breadcrumb separator=">">
+            <n-breadcrumb separator=">" class="title">
                 <n-breadcrumb-item v-for="(item, index) in breadcrumbItems" :key="index">
                     <router-link :to="item.link">{{ item.text }}</router-link>
                 </n-breadcrumb-item>
             </n-breadcrumb>
-            <n-card>
+            <n-card class="content-holder">
                 <router-view />
             </n-card>
         </div>
@@ -15,7 +15,7 @@
             <div>
                 <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo"
                     width="12" height="12" />
-                <a class="friendly-link" href="https://github.com/hsyhhssyy/amiyabot-minigame-center-website"
+                <a class="friendly-link" href="https://github.com/HappyThreeFriends/amiyabot-custom-pools"
                     target="_blank">
                     GitHub Repository
                 </a>
@@ -74,12 +74,16 @@ onBeforeRouteUpdate((to, _, next) => {
         flex: 2;
         flex-direction: column;
         align-items: center;
-        padding-top: 40px;
+        padding-top: 20px;
         width: 50%;
 
         .title {
             font-size: 34px;
-            margin-bottom: 50px;
+            margin-bottom: 20px;
+        }
+
+        .content-holder {
+            height: 80vh;
         }
     }
 

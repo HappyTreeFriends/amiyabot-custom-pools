@@ -11,7 +11,7 @@
                         <n-card class="option-item" hoverable embedded size="small" @click="navigateTo('create')">
                             <div class="item register">创建趣味卡池</div>
                         </n-card>
-                        <n-card class="option-item" hoverable embedded size="small" @click="navigateTo('edit')">
+                        <n-card class="option-item" hoverable embedded size="small" @click="openPool = true">
                             <div class="item visitor">编辑趣味卡池</div>
                         </n-card>
                         <n-card class="option-item" hoverable embedded size="small" @click="navigateTo('bot')">
@@ -20,7 +20,7 @@
                     </n-space>
                 </n-tab-pane>
                 <n-tab-pane name="pick" tab="pick">
-                    
+
                 </n-tab-pane>
                 <n-tab-pane name="create" tab="create">
 
@@ -49,30 +49,34 @@
         <div class="footer">
             <div>本网站不是鹰角网络官方网站，而是由爱好者自行开发的工具网站。</div>
             <div>
-                <img
-                    src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-                    alt="GitHub Logo"
-                    width="12"
-                    height="12"
-                />
-                <a
-                    class="friendly-link"
-                    href="https://github.com/hsyhhssyy/amiyabot-minigame-center-website"
-                    target="_blank"
-                >
+                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo"
+                    width="12" height="12" />
+                <a class="friendly-link" href="https://github.com/HappyThreeFriends/amiyabot-custom-pools"
+                    target="_blank">
                     GitHub Repository
                 </a>
                 <n-divider vertical />
-                <img
-                    src="https://img.alicdn.com/tfs/TB1..50QpXXXXX7XpXXXXXXXXXX-40-40.png"
-                    alt="Beian Logo"
-                    width="12"
-                    height="12"
-                />
+                <img src="https://img.alicdn.com/tfs/TB1..50QpXXXXX7XpXXXXXXXXXX-40-40.png" alt="Beian Logo" width="12"
+                    height="12" />
                 <a class="friendly-link" href="https://beian.miit.gov.cn/" target="_blank"> 京ICP备2022033983-2号 </a>
             </div>
         </div>
     </div>
+    <n-modal v-model:show="openPool" title="编辑卡池">
+        <n-card class="open-pool-dialog" title="编辑卡池" :bordered="false" role="dialog" aria-modal="true">
+            <n-form>
+                <n-form-item label="卡池名称">
+                    <n-input placeholder="卡池名称" />
+                </n-form-item>
+                <n-form-item label="卡池秘钥">
+                    <n-input placeholder="卡池秘钥" />
+                </n-form-item>
+            </n-form>
+            <div>
+                <icon-button :icon="Back" @click="openPool = false">返回</icon-button>
+            </div>
+        </n-card>
+    </n-modal>
 </template>
 
 <script setup lang="ts">
@@ -85,6 +89,8 @@ import IconButton from '@/universal/components/IconButton.vue'
 const router = useRouter()
 
 const tab = ref('options')
+
+const openPool = ref(false)
 
 async function goBack() {
     tab.value = 'options'
@@ -100,12 +106,9 @@ const navigateTo = (tabIn: string) => {
     tab.value = tabIn
     switch (tabIn) {
         case 'pick':
-            router.push('/pick')
+            router.push('/search')
             break
         case 'create':
-            router.push('/create')
-            break
-        case 'edit':
             router.push('/edit-pool')
             break
     }
@@ -169,17 +172,18 @@ const navigateTo = (tabIn: string) => {
         }
     }
 
+
     .footer {
         text-align: center;
         font-size: 14px;
         color: gray;
         padding-bottom: 10px;
 
-        & > div:first-child {
+        &>div:first-child {
             margin-bottom: 5px;
         }
 
-        & > div:last-child {
+        &>div:last-child {
             display: flex;
             justify-content: center;
             height: 16px;
@@ -202,6 +206,13 @@ const navigateTo = (tabIn: string) => {
         align-items: center;
     }
 }
+
+
+.open-pool-dialog{
+    max-width: 50vw;
+    max-height: 80vh;
+}
+
 </style>
 <style lang="scss">
 .login {

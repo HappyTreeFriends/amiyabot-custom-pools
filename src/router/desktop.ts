@@ -11,6 +11,14 @@ const desktopRoutes: RouteRecordRaw[] = [
     component: () => import('@/desktop/views/Home.vue')
   },
   {
+    path: '/search',
+    name: 'search',
+    meta: {
+      pageName: '兔兔趣味卡池中心'
+    },
+    component: () => import('@/desktop/views/SearchPool.vue')
+  },
+  {
     path: '/editor-home',
     name: 'editor-home',
     meta: {

@@ -27,7 +27,6 @@ let timeout: NodeJS.Timeout | undefined
 let lastTime = 0
 const wait = 300 // 防抖等待时间
 
-
 async function handleClick(): Promise<void> {
   const now = Date.now()
   if (now - lastTime < wait) {

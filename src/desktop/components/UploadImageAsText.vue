@@ -1,9 +1,9 @@
 <template>
     <div class="uploader-body">
-        <n-upload @before-upload="beforeUpload" class="n-uploader">
+        <n-upload @before-upload="beforeUpload" class="n-uploader" :abstract="false">
             <n-upload-dragger class="upload-dragger">
                 <div class="icon-container">
-                    <n-icon size="40" :depth="3">
+                    <n-icon size="30" :depth="3">
                         <UploadPicture />
                     </n-icon>
                 </div>
@@ -52,7 +52,7 @@ const model = defineModel<string | null>({ required: true })
 
 const prop = defineProps<{
     text: string;
-    aspectRatio: number;
+    aspectRatio?: number;
 }>();
 
 const displayMask = ref(false);
@@ -63,7 +63,7 @@ const imageCropper = useTemplateRef('imageCropper')
 
 const intermidiateImageBase64 = ref<string | null>(null);
 
-var cropper:any;
+var cropper: any;
 
 onMounted(() => {
     // 从model中获取图片的base64编码，并将其填入
@@ -78,9 +78,15 @@ onMounted(() => {
 const dialogOpen = () => {
 
     const imgC = imageCropper.value as HTMLImageElement;
-    cropper = new Cropper(imgC, {
-        aspectRatio: prop.aspectRatio
-    });
+    var data = {}
+
+    if (prop.aspectRatio) {
+        data = {
+            aspectRatio: prop.aspectRatio
+        }
+    }
+
+    cropper = new Cropper(imgC, data);
 }
 
 const removeImage = () => {
@@ -110,12 +116,12 @@ const dialogClose = () => {
 
     // 将裁剪的 Canvas 转换为 DataURL（Base64 图片）
     const croppedImageURL = croppedCanvas.toDataURL('image/png');
-    console.log(croppedImageURL);  
+    console.log(croppedImageURL);
     model.value = croppedImageURL;
     console.log("Image Loaded.");
     cropperOpen.value = false;
 
-    
+
     const img = imageMask.value as HTMLImageElement;
     img.src = croppedImageURL;
     displayMask.value = true;
@@ -124,7 +130,7 @@ const dialogClose = () => {
 
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .uploader-body {
     position: relative;
     display: block;
@@ -134,21 +140,28 @@ const dialogClose = () => {
         height: 100%;
 
         .upload-dragger {
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
+            padding: 10px;
+            justify-content: center;
+            /* 水平居中 */
+            align-items: center;
+            /* 垂直居中 */
 
             .icon-container {
-                margin-bottom: 12px;
+                margin-bottom: 10px;
                 display: flex;
                 justify-content: center;
             }
 
             .main-text {
-                font-size: 20px;
+                font-size: 14px;
             }
 
             .sub-text {
-                font-size: 16px;
+                font-size: 12px;
             }
         }
     }
@@ -177,40 +190,49 @@ const dialogClose = () => {
         z-index: 20;
     }
 
-    .cropper-dialog {
-        // width 和 height都设为 80vh 和 80vw 中小的那一个
-        width: min(80vh, 80vw);
-        height: min(80vh, 80vw);
 
-        .cropper-dialog-card-content {
+}
+
+.cropper-dialog {
+    // width 和 height都设为 80vh 和 80vw 中小的那一个
+    width: min(80vh, 80vw);
+    height: min(80vh, 80vw);
+
+    .cropper-dialog-card-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+
+        .cropper-div {
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100%;
 
-            .cropper-div {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100%;
+            .cropper-img {
+                display: block;
 
-                .cropper-img {
-                    display: block;
-
-                    /* This rule is very important, please don't ignore this */
-                    max-width: 100%;
-                }
-            }
-
-            .cropper-dialog-button-bar {
-                display: flex;
-                justify-content: space-between;
-                width: 100%;
-                margin-top: 20px;
-                margin-bottom: 40px;
+                /* This rule is very important, please don't ignore this */
+                max-width: 100%;
             }
         }
+
+        .cropper-dialog-button-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
     }
+}
+</style>
+
+<style lang="scss">
+.n-upload-trigger {
+    height: 100%;
+    width: 100%;
 }
 </style>
