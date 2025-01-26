@@ -1,23 +1,60 @@
+import asyncio
 import random
 import shutil
 import uuid
 from cachetools import TTLCache
 from fastapi import FastAPI, HTTPException, File, UploadFile, Request, APIRouter,Query,Depends
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import sqlite3
 import json
 import os
 import uvicorn
-from contextlib import contextmanager
+from contextlib import contextmanager,asynccontextmanager
 import zipfile
 import io
 from fastapi.staticfiles import StaticFiles
 
+def sync_create_tables():
+    conn = sqlite3.connect("./data/db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS custom_pools (
+            pool_uuid TEXT PRIMARY KEY,
+            unique_name TEXT,
+            edit_uuid TEXT,
+            file_name TEXT,
+            operators TEXT,
+            use_count INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时执行同步数据库操作（使用线程池避免阻塞）
+    await asyncio.to_thread(sync_create_tables)
+    yield  # 应用运行期间保持
+    # 此处可添加关闭逻辑（如果需要）
+
 # 创建 FastAPI 实例
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 router = APIRouter()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 允许所有来源，生产环境应指定具体域名
+    # allow_origins=["https://diy.amiyabot.com"], 
+    # allow_credentials=True,  # 允许携带凭证（如 cookies）
+    allow_methods=["*"],  # 允许所有 HTTP 方法
+    allow_headers=["*"],  # 允许所有请求头
+    expose_headers=["*"],  # 暴露所有响应头
+    max_age=600,  # 预检请求缓存时间（秒）
+)
 
 TEMP_DIR = "./data/temp"
 UPLOAD_DIR = "./data/uploads"
@@ -60,25 +97,6 @@ def search_rate_limiter(request: Request):
         search_cache[client_ip] = True
     return
 
-@app.on_event("startup")
-async def startup():
-    # 使用 SQLite 创建表
-    conn = sqlite3.connect("./data/db.sqlite3")
-    cursor = conn.cursor()
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS custom_pools (
-        pool_uuid TEXT PRIMARY KEY,
-        unique_name TEXT,
-        edit_uuid TEXT,
-        file_name TEXT,
-        operators TEXT,
-        use_count INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-    conn.commit()
-    conn.close()
-
 @app.post("/upload-zip")
 async def upload_json(file: UploadFile = File(...), pool_uuid: str = None, edit_uuid: str = None):
     # 检查文件大小
@@ -109,79 +127,79 @@ async def upload_json(file: UploadFile = File(...), pool_uuid: str = None, edit_
         if row["edit_uuid"] != edit_uuid:
             raise HTTPException(status_code=400, detail="edit_uuid does not match.")
 
-    # unzip this file in memory
-    with zipfile.ZipFile(io.BytesIO(await file.read()), "r") as zip_ref:
-        zip_ref.extractall(os.path.join(TEMP_DIR, pool_uuid))
+        # unzip this file in memory
+        with zipfile.ZipFile(io.BytesIO(await file.read()), "r") as zip_ref:
+            zip_ref.extractall(os.path.join(TEMP_DIR, pool_uuid))
 
-    pool_temp_dir = os.path.join(TEMP_DIR, pool_uuid)
+        pool_temp_dir = os.path.join(TEMP_DIR, pool_uuid)
 
-    # 打开meta-data.json文件
+        # 打开meta-data.json文件
 
-    with open(os.path.join(pool_temp_dir, "meta-data.json"), "r") as f:
-        try:
-            json_data = json.load(f)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid JSON format.")
-    
-    # 检查json数据
-    if not isinstance(json_data, dict):
-        raise HTTPException(status_code=400, detail="JSON data must be a dictionary.")
-    
-    # 覆写pool_uuid
-    json_data["pool_uuid"] = pool_uuid
-
-    if "pool_name" not in json_data:
-        raise HTTPException(status_code=400, detail="pool_name is required.")
-
-    if row["unique_name"] is None:
-        for _ in range(50):
-            unique_name = json_data.get("pool_name") + "#" + str(random.randint(1000, 9999))
-            cursor.execute("SELECT * FROM custom_pools WHERE unique_name = ?", (unique_name,))
-            peekRow = cursor.fetchone()
-            if not peekRow:
-                break
-        else:
-            raise HTTPException(status_code=500, detail="Failed to generate unique_name.")
+        with open(os.path.join(pool_temp_dir, "meta-data.json"), "r") as f:
+            try:
+                json_data = json.load(f)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid JSON format.")
         
-        cursor.execute("UPDATE custom_pools SET unique_name = ? WHERE pool_uuid = ?", (unique_name, pool_uuid))
+        # 检查json数据
+        if not isinstance(json_data, dict):
+            raise HTTPException(status_code=400, detail="JSON data must be a dictionary.")
+        
+        # 覆写pool_uuid
+        json_data["pool_uuid"] = pool_uuid
 
-        json_data["unique_name"] = unique_name
-    
-    # 检查images文件夹是否存在
-    pool_dir = os.path.join(UPLOAD_DIR, pool_uuid)
-    os.makedirs(pool_dir, exist_ok=True)
+        if "pool_name" not in json_data:
+            raise HTTPException(status_code=400, detail="pool_name is required.")
 
-    # 移动文件pool_image.png
-    os.rename(os.path.join(pool_temp_dir, "pool_image.png"), os.path.join(pool_dir, "pool_image.png"))
+        if row["unique_name"] is None:
+            for _ in range(50):
+                unique_name = json_data.get("pool_name") + "#" + str(random.randint(1000, 9999))
+                cursor.execute("SELECT * FROM custom_pools WHERE unique_name = ?", (unique_name,))
+                peekRow = cursor.fetchone()
+                if not peekRow:
+                    break
+            else:
+                raise HTTPException(status_code=500, detail="Failed to generate unique_name.")
+            
+            cursor.execute("UPDATE custom_pools SET unique_name = ? WHERE pool_uuid = ?", (unique_name, pool_uuid))
 
-    if 'custom_operators' in json_data:
-        for operator in json_data['custom_operators']:
-            avatar_file = os.path.join(pool_temp_dir, operator['uuid']+".avatar.png")
-            portrait_file = os.path.join(pool_temp_dir, operator['uuid']+".portrait.png")
-            if os.path.exists(avatar_file):
-                os.rename(avatar_file, os.path.join(pool_dir, operator['uuid']+".avatar.png"))
-            if os.path.exists(portrait_file):
-                os.rename(portrait_file, os.path.join(pool_dir, operator['uuid']+".portrait.png"))
-    
-    # json_data重整(只保留指定的key)
-    # refined_json_data = {key: json_data[key] for key in ["pool_uuid", "pool_name", "unique_name", "custom_operators"]}
-    refined_json_data = json_data
+            json_data["unique_name"] = unique_name
+        
+        # 检查images文件夹是否存在
+        pool_dir = os.path.join(UPLOAD_DIR, pool_uuid)
+        os.makedirs(pool_dir, exist_ok=True)
 
-    # 写入json文件
-    json_path = os.path.join(pool_dir, "meta-data.json")
-    with open(json_path, "w") as f:
-        json.dump(refined_json_data, f, indent=4)
+        # 移动文件pool_image.png
+        if os.path.exists(os.path.join(pool_temp_dir, "pool_image.png")):
+            os.rename(os.path.join(pool_temp_dir, "pool_image.png"), os.path.join(pool_dir, "pool_image.png"))
 
-    # 写入数据库
-    with get_db() as conn:
+        if 'custom_operators' in json_data:
+            for operator in json_data['custom_operators']:
+                avatar_file = os.path.join(pool_temp_dir, operator['uuid']+".avatar.png")
+                portrait_file = os.path.join(pool_temp_dir, operator['uuid']+".portrait.png")
+                if os.path.exists(avatar_file):
+                    os.rename(avatar_file, os.path.join(pool_dir, operator['uuid']+".avatar.png"))
+                if os.path.exists(portrait_file):
+                    os.rename(portrait_file, os.path.join(pool_dir, operator['uuid']+".portrait.png"))
+        
+        # json_data重整(只保留指定的key)
+        # refined_json_data = {key: json_data[key] for key in ["pool_uuid", "pool_name", "unique_name", "custom_operators"]}
+        refined_json_data = json_data
+
+        # 写入json文件
+        json_path = os.path.join(pool_dir, "meta-data.json")
+        with open(json_path, "w") as f:
+            json.dump(refined_json_data, f, indent=4)
+
+        # 写入数据库
         cursor = conn.cursor()
         cursor.execute("UPDATE custom_pools SET file_name = ? WHERE pool_uuid = ?", (json_path, pool_uuid))
         conn.commit()
 
-    # 清理临时文件夹
-    shutil.rmtree(pool_temp_dir)
-    
-    return {"message": "File uploaded successfully.", "unique_name": unique_name, "edit_uuid": edit_uuid}
+        # 清理临时文件夹
+        shutil.rmtree(pool_temp_dir)
+        
+        return {"success":True,"message": "File uploaded successfully.", "pool_uuid":pool_uuid, "unique_name": unique_name, "edit_uuid": edit_uuid}
 
 @app.post("/get-pool-uuid/")
 async def get_pool_uuid(request: dict):

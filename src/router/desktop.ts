@@ -35,17 +35,7 @@ const desktopRoutes: RouteRecordRaw[] = [
         component: () => import('@/desktop/views/EditPool.vue'),
         children: [
         ]
-      },      
-      {
-        path: '/edit-pool/edit-operator',
-        name: 'edit-operator',
-        meta: {
-          pageName: '干员编辑'
-        },
-        component: () => import('@/desktop/views/EditOperator.vue'),
-        children: [
-        ]
-      }
+      },
     ]
     
   }

@@ -62,7 +62,7 @@
 
 <script lang="ts" setup>
 import { Star } from '@icon-park/vue-next'
-import { defineEmits, defineProps, withDefaults } from 'vue'
+import { defineEmits, defineProps } from 'vue'
 import {getClassImage} from '@/utils/classes'
 
 interface OperatorData {

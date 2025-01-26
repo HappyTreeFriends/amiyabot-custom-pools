@@ -1,3 +1,4 @@
-var config = {
-    "server_root": "https://custom-pools-server.hsyhhssyy.net",
+window._env_ = {
+    // SERVER_ROOT: "https://custom-pools-server.hsyhhssyy.net",
+    SERVER_ROOT: "http://localhost:80",
 }

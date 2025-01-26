@@ -116,9 +116,9 @@ const dialogClose = () => {
 
     // 将裁剪的 Canvas 转换为 DataURL（Base64 图片）
     const croppedImageURL = croppedCanvas.toDataURL('image/png');
-    console.log(croppedImageURL);
+    //console.log(croppedImageURL);
     model.value = croppedImageURL;
-    console.log("Image Loaded.");
+    //console.log("Image Loaded.");
     cropperOpen.value = false;
 
 

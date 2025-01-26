@@ -95,8 +95,7 @@
                     <icon-button :icon="Upload" type="default" @click="editorOpen = false">
                         取消
                     </icon-button>
-                    <icon-button :icon="Upload" type="success" style="margin-left: 20px;"
-                        @click="SaveOperator">
+                    <icon-button :icon="Upload" type="success" style="margin-left: 20px;" @click="SaveOperator">
                         保存
                     </icon-button>
                 </div>
@@ -104,24 +103,82 @@
         </n-card>
     </n-modal>
 
+    <n-modal v-model:show="zipFileUploadResult" :mask-closable="false">
+        <n-card class="uploading-dialog allow-copy" title="上传成功">
+            <n-space vertical :size="10">
+                <n-alert title="卡池编号" type="default">
+                    <template #icon>
+                        <n-icon :component="Upload" />
+                    </template>
+                    <n-space justify="center">
+                        <n-text strong>
+                            {{ zipFileUploadResult?.pool_uuid }}
+                            <n-button text type="primary" :focusable="false">
+                                <template #icon>
+                                    <n-icon :component="Copy" />
+                                </template>
+                            </n-button>
+                        </n-text>
+                    </n-space>
+                </n-alert>
+                <n-alert title="完整名称" type="default">
+                    <template #icon>
+                        <n-icon :component="Alarm" />
+                    </template>
+                    <n-space justify="center">
+                        <n-text strong>
+                            {{ zipFileUploadResult?.unique_name }}
+                            <n-button text type="primary" :focusable="false">
+                                <template #icon>
+                                    <n-icon :component="Copy" />
+                                </template>
+                            </n-button>
+                        </n-text>
+                    </n-space>
+                </n-alert>
+                <n-alert title="安全提示" type="info">
+                    <template #icon>
+                        <n-icon :component="Lock" />
+                    </template>
+
+                    <n-space vertical :size="12" style="align-items: center;">
+                        <n-text strong depth="3">
+                            {{ zipFileUploadResult?.edit_uuid }}
+                            <n-button text type="primary" :focusable="false">
+                                <template #icon>
+                                    <n-icon :component="Copy" />
+                                </template>
+                            </n-button>
+                        </n-text>
+
+                        <n-text depth="3" type="error" style="font-size: 12px;">
+                            重要提示：未来修改该卡池时，需要您提供该秘钥，遗失无法找回，请妥善保管秘钥。
+                        </n-text>
+                    </n-space>
+                </n-alert>
+            </n-space>
+            <template #footer>
+        <div style="width: 100%; display: flex; justify-content: center;">
+          <n-button type="primary" @click="closeUploadResult">确定</n-button>
+        </div>
+      </template>
+        </n-card>
+    </n-modal>
+
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref } from 'vue';
 import JSZip from 'jszip';
-import { useRouter } from 'vue-router';
 import UploadImageAsText from '@/desktop/components/UploadImageAsText.vue'
 import Operator from '@/desktop/components/Operator.vue'
-import EditOperator from '@/desktop/views/EditOperator.vue'
 import IconButton from '@/universal/components/IconButton.vue'
-import { Upload, Add, Edit, Star } from '@icon-park/vue-next'
-import { getClasses, getClassImage } from '@/utils/classes'
-
-const router = useRouter();
+import { Upload, Add, Lock, Alarm, Copy } from '@icon-park/vue-next'
+import { getClasses } from '@/utils/classes'
+import { uploadZip,UploadZipResponse } from '@/utils/server'
 
 const poolImageBase64 = ref<string | null>('');
 
-const uploading = ref<boolean>(false);
 const uploadButtonDisabled = ref<boolean>(false);
 const uploadButtonText = ref<string>('计算文件大小');
 
@@ -165,6 +222,8 @@ const zipFileSizeStatus = ref<string>("default");
 
 var finalZipFile: Blob | null = null;
 
+const zipFileUploadResult = ref<UploadZipResponse|null>();
+
 const editOperator = (op: any) => {
     console.log(op);
     editingOperatorName.value = op.name;
@@ -197,33 +256,51 @@ const SaveOperator = () => {
     }
     customOperators.value.push(addedOperator)
     editorOpen.value = false;
-    console.log('SaveOperator',addedOperator)
+    console.log('SaveOperator', addedOperator)
 }
 
 const onUploadButtonClick = async () => {
     if (finalZipFile != null) {
-        upload()
+        await upload()
     } else {
         await calcuate()
     }
 }
 
-const upload = () => {
-    const url = window.URL.createObjectURL(finalZipFile)
+const upload = async () => {
+    if (finalZipFile == null) {
+        return
+    }
 
-    // 测试用自动下载（注意：某些浏览器可能阻止非用户触发的下载）
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'pool.zip'
-    link.click()
+    uploadButtonDisabled.value = true;
+
+    const file = new File([finalZipFile], "pool.zip", {
+        type: 'application/zip',
+        lastModified: Date.now()
+    });
+
+    var resp = await uploadZip(file)
+    // const url = window.URL.createObjectURL(finalZipFile)
+    // // 测试用自动下载（注意：某些浏览器可能阻止非用户触发的下载）
+    // const link = document.createElement('a')
+    // link.href = url
+    // link.download = 'pool.zip'
+    // link.click()
+    if(resp.success){
+        zipFileUploadResult.value = resp
+    }else{        
+        uploadButtonDisabled.value = false;
+    }
+
+
 }
 
 
 const generateJson = () => {
 
-    const getPickupRate = (level) => {
+    const getPickupRate = (level: number) => {
 
-        var defaultUpRates = {
+        var defaultUpRates: Record<string, number> = {
             '6': 70,
             '5': 50,
             '4': 0,
@@ -240,12 +317,12 @@ const generateJson = () => {
 
     }
 
-    const getPickup = (level) => {
+    const getPickup = (level: number) => {
 
-        var operators = []
+        var operators: string[] = []
 
-        operators = [...operators , ...officialOperators[level.toString()]]
-        operators = [...operators , ...customOperators.value.filter(op => op.rarity == level).map(op => op.name)]
+        operators = [...operators, ...officialOperators[level.toString()]]
+        operators = [...operators, ...customOperators.value.filter(op => op.rarity == level).map(op => op.name)]
 
         return operators
     }
@@ -270,7 +347,8 @@ const generateJson = () => {
         pickup_1: getPickup(1),
         pickup_1_rate: getPickupRate(1),
 
-        version: 1
+        version: 1,
+        custom_operators: [] as Array<{ name: string; rarity: number; class: string; avatar: string; portrait: string }>
     }
 }
 
@@ -286,10 +364,13 @@ const calcuate = async () => {
     uploadButtonDisabled.value = true;
     uploadButtonText.value = '计算中......';
 
+    const startTime = Date.now();
     const zip = new JSZip();
 
-    const pureBase64 = poolImageBase64.value.split(',')[1] || poolImageBase64.value
-    zip.file("pool_image.png", pureBase64, { base64: true })
+    if (poolImageBase64.value != null) {
+        const pureBase64 = poolImageBase64.value.split(',')[1] || poolImageBase64.value
+        zip.file("pool_image.png", pureBase64, { base64: true })
+    }
 
     var customOperatorsJsonPayload = []
 
@@ -327,7 +408,7 @@ const calcuate = async () => {
 
     let totalSize = 0
 
-    stream.on('data', (chunk: Uint8Array, metadata) => {
+    stream.on('data', (chunk: Uint8Array, _) => {
         chunks.push(chunk)
         totalSize += chunk.byteLength
         var totalSizeInMB = totalSize / 1024 / 1024
@@ -336,6 +417,9 @@ const calcuate = async () => {
             zipFileSizePrecentageValue = 100
             zipFileSizeStatus.value = "error"
         } else {
+            if (zipFileSizePrecentageValue <= 0.01) {
+                totalSizeInMB = 0.01
+            }
             zipFileSizeStatus.value = "default"
         }
         zipFileSizePrecentage.value = zipFileSizePrecentageValue
@@ -343,15 +427,29 @@ const calcuate = async () => {
     })
 
     stream.on('end', () => {
-        const blob = new Blob(chunks, { type: 'application/zip' })
-        console.log('最终 ZIP 文件:', blob)
-        uploadButtonDisabled.value = false;
-        uploadButtonText.value = '上传到服务器';
-        finalZipFile = blob;
+        // 计算已用时间并补足剩余时间（至少等待 1 秒）
+        const elapsedTime = Date.now() - startTime;
+        const remainingDelay = Math.max(1000 - elapsedTime, 0);
+
+        setTimeout(() => {
+            const blob = new Blob(chunks, { type: 'application/zip' })
+            console.log('最终 ZIP 文件:', blob)
+            uploadButtonDisabled.value = false;
+            uploadButtonText.value = '上传到服务器';
+            finalZipFile = blob;
+        }, remainingDelay); // 剩余延迟补足到 1 秒
     })
 
     // 开始生成
     stream.resume()
+}
+
+const closeUploadResult = () => {
+    zipFileUploadResult.value = null
+    finalZipFile = null
+    uploadButtonText.value = '计算文件大小'
+    zipFileSizePrecentage.value = 0    
+    uploadButtonDisabled.value = false;
 }
 
 </script>
@@ -397,7 +495,14 @@ const calcuate = async () => {
 }
 
 .uploading-dialog {
-    width: 50vw;
-    height: 80vh;
+    width: 500px;
+    gap: 10px;
+}
+
+.allow-copy,
+.allow-copy *,
+.allow-copy *::before,
+.allow-copy *::after {
+    user-select: text;
 }
 </style>

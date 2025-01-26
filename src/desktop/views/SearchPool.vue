@@ -12,7 +12,7 @@
                 </n-input-group>
             </n-space>
             <div class="room-list-content">
-                <div class="room-item" v-for="(item, index) in currList" :key="index">
+                <div class="room-item" v-for="(_, index) in currList" :key="index">
                     <n-card size="small" hoverable @click="openPreview = true">
                         <n-space justify="space-between">
                             <img class="game-logo" alt="" src="/demo/pool-image.png" />
@@ -68,7 +68,7 @@
                 <n-alert title="完整名称" type="default">
                     <n-space justify="center" class="dialog-panel-outer">
                         <icon :icon="IdCardH" />
-                        <span class="dialog-panel-selectable">就在引种#1234</span>
+                        <n-code :code="'酒在饮中'" language="javascript"/>
                         <button>复制到剪贴板</button>
                     </n-space>
                 </n-alert>
@@ -80,7 +80,7 @@
                 <img class="pool-image" alt="" src="/demo/pool-image.png" />
             </n-space>
             <div class="operator-item">
-                <div v-for="(item, index) in currList" :key="index">
+                <div v-for="(_, index) in currList" :key="index">
                     <div>
                         <img class="operator-logo" alt="" src="/demo/xusheng-portait.png" />
                         <div class="operator-star">
@@ -103,9 +103,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { Back, Star, IdCardH, KeyOne, Lightning, Peoples, Refresh, Search, UserBusiness } from '@icon-park/vue-next'
+import { ref } from 'vue'
+import { Back, Star, IdCardH, Refresh, Search } from '@icon-park/vue-next'
 import IconButton from '@/universal/components/IconButton.vue'
 import Icon from '@/universal/components/Icon.vue'
 
